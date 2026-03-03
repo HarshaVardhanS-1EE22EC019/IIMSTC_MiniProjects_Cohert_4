@@ -1,0 +1,113 @@
+#include <Servo.h>
+#include <LiquidCrystal_I2C.h>
+#include <Keypad.h>
+#include <string.h>
+
+char correctPassword[] = "0123";
+char enteredPassword[5];
+byte passwordIndex = 0;
+
+#define buzzer 11
+Servo servo;
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+const byte ROWS = 4;
+const byte COLS = 4;
+
+char keys[ROWS][COLS] = {
+  {'D', 'C', 'B', 'A'},
+  {'#', '9', '6', '3'},
+  {'0', '8', '5', '2'},
+  {'*', '7', '4', '1'},
+};
+
+byte rowPins[ROWS] = {2, 3, 4, 5};
+byte colPins[COLS] = {6, 7, 8, 9};
+Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
+
+
+void setup() {
+
+  pinMode(buzzer, OUTPUT);
+  digitalWrite(buzzer, LOW);
+  servo.attach(10); 
+  lcd.init();
+  lcd.backlight();
+  lcd.setCursor(0, 0);
+  lcd.print("DOOR LOCK SYSTEM");
+  delay(2000);
+  lcd.clear();
+}
+
+
+void loop() {
+
+  lcd.setCursor(0, 0);
+  lcd.print("ENTER PASSWORD ");
+
+  char key = keypad.getKey();
+
+  if (key) {
+
+    if (key == 'C') {
+      resetPassword();
+    }
+    else if (key >= '0' && key <= '9') {
+      enterKey(key);
+    }
+  }
+}
+
+
+void enterKey(char key) {
+
+  if (passwordIndex < 4) {
+
+    enteredPassword[passwordIndex] = key;
+    lcd.setCursor(passwordIndex + 6, 1);
+    lcd.print("*");
+    passwordIndex++;
+  }
+
+  if (passwordIndex == 4) {
+
+    enteredPassword[4] = '\0';
+
+    if (strcmp(enteredPassword, correctPassword) == 0) {
+      openDoor();
+    } else {
+      wrongPassword();
+    }
+
+    resetPassword();
+  }
+}
+
+
+void openDoor() {
+
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("ACCESS GRANTED");
+  lcd.setCursor(2, 1);
+  lcd.print("DOOR OPENING");
+  servo.write(0);     
+  delay(8000);        
+  servo.write(90);   
+}
+
+void wrongPassword() {
+
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("WRONG PASSWORD");
+  lcd.setCursor(2, 1);
+  lcd.print("ALERT!");
+  digitalWrite(buzzer, HIGH);   
+  delay(5000);                  
+  digitalWrite(buzzer, LOW);    
+}
+
+void resetPassword() {
+  passwordIndex = 0;
+  lcd.clear();
+}
